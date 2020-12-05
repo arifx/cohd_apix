@@ -10,7 +10,7 @@ import wget #pip install wget
 
 
 #get omim-drug mappings
-wget.download("https://raw.githubusercontent.com/MaastrichtU-IDS/translator-openpredict/master/openpredict/data/resources/openpredict-omim-drug.csv")
+#wget.download("https://raw.githubusercontent.com/MaastrichtU-IDS/translator-openpredict/master/openpredict/data/resources/openpredict-omim-drug.csv")
 
 
 omimomoplist=[]
