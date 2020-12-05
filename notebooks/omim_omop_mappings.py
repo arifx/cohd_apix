@@ -5,6 +5,13 @@ import copy
 from cohd_helpers.cohd_requests import *
 from cohd_helpers.cohd_temporal_analysis import *
 import time as timer
+import wget #pip install wget
+
+
+
+#get omim-drug mappings
+wget.download("https://raw.githubusercontent.com/MaastrichtU-IDS/translator-openpredict/master/openpredict/data/resources/openpredict-omim-drug.csv")
+
 
 omimomoplist=[]
 empty_omim_list=[]
