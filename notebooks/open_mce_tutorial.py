@@ -37,7 +37,7 @@ def load_mce(mce_data_path, data_format, concept2id_path=None):
 
     return mce_matrix, concept2id
 
-mce_matrix, mce_concept2id = load_mce("~/glove_e30_5year_128.npy", "glove",
-                                     concept2id_path="~/concept2id_condition_5yrs.pkl")
+mce_matrix, mce_concept2id = load_mce("./glove_e30_5year_128.npy", "glove",
+                                     concept2id_path="./concept2id_condition_5yrs.pkl")
 
-mce_matrix, mce_concept2id = load_mce("~/node2vec_aug_128.txt", "node2vec")
+#mce_matrix, mce_concept2id = load_mce("./node2vec_aug_128.txt", "node2vec")

@@ -4,11 +4,18 @@ import numpy as np
 import gensim
 import pickle
 import pandas as pd 
+from cohd_helpers.cohd_requests import *
+from cohd_helpers.cohd_temporal_analysis import *
 
 def load_data(pklfile):
     f = open(pklfile, "rb")
     mydata = pickle.load(f)
     return mydata
+
+def load_omim_omop_list(oolist_file):
+    oo_listdata=pd.read_csv(oolist_file)
+    return oo_listdata
+
 
 def build_dict(concept_list):
     mydict = dict()
@@ -38,8 +45,7 @@ def load_mce(mce_data_path, data_format, concept2id_path=None):
 
     return mce_matrix, concept2id
 
-mce_matrix, mce_concept2id = load_mce("./glove_e30_5year_128.npy", "glove",
-                                     concept2id_path="./concept2id_condition_5yrs.pkl")
+
 
 #mce_matrix, mce_concept2id = load_mce("./node2vec_aug_128.txt", "node2vec")
 
@@ -49,49 +55,49 @@ mce_matrix, mce_concept2id = load_mce("./glove_e30_5year_128.npy", "glove",
 #wget.download("https://raw.githubusercontent.com/MaastrichtU-IDS/translator-openpredict/master/openpredict/data/resources/openpredict-omim-drug.csv")
 
 
-omimomoplist=[]
-empty_omim_list=[]
-omim_withemptyomop_list=[] # contains merged omim and empty omop=0 entries If there is no omop then its id is zero. 
-data = pd.read_csv("openpredict-omim-drug.csv") 
-#print("omimcount:"+str(data.count))
-omimdf=data['omimid']
+def filter_omims_from_oolist():  
+    omim_withemptyomop_list=load_omim_omop_list("./data/omim_withemptyomop.csv") # contains merged omim and empty omop=0 entries If there is no omop then its id is zero. 
+    omimdf=omim_withemptyomop_list['omimid']
 
-print(str(omimdf.head()))
+    for oid in omimdf:
+      try:
+        curie = "OMIM:"+str(oid)  # osteoarthritis
+        _, df = xref_to_omop(curie, distance=2)
+      except:
+        print("OID error:"+str(oid))
+      if df.empty != True:
+        for omopid in df.omop_standard_concept_id:
+          omim_withemptyomop_list.append([oid,omopid])
+      else:
+        print("Empty :"+str(oid))
+        omim_withemptyomop_list.append([oid,0])
 
-for oid in omimdf:
-  #timer.sleep(1)
-  #print("OMIMID->"+str(oid))
-  try:
-    curie = "OMIM:"+str(oid)  # osteoarthritis
-    _, df = xref_to_omop(curie, distance=2)
-  except:
-    print("OID error:"+str(oid))
-  if df.empty != True:
-    for omopid in df.omop_standard_concept_id:
-      omimomoplist.append([oid,omopid])
-      omim_withemptyomop_list.append([oid,omopid])
-  else:
-    print("Empty OMIM:"+str(oid))
-    empty_omim_list.append(oid)
-    omim_withemptyomop_list.append([oid,0])
+    omim_withemptyomop_table=pd.DataFrame(omim_withemptyomop_list, columns=['OMIMID','OMOPID'])
 
-omim_omop_table=pd.DataFrame(omimomoplist, columns=['OMIMID','OMOPID'])
-omim_withemptyomop_table=pd.DataFrame(omim_withemptyomop_list, columns=['OMIMID','OMOPID'])
-empty_omim_table=pd.DataFrame(empty_omim_list, columns=['OMIMID'])
-#print(omim_omop_table.count)
-#print(empty_omim_list.count)
+### Give OMIM-OMOP list and mce matrix, add omim ids and adds asa column, returns omim_mce_matrix, which contains
+# only the interested OMIMs 
+def add_omims_to_mce_matrix(omim_withemptyomop_list, mce_matrix, mce_concept2id):
+    for omid in omim_withemptyomop_list["OMIMID"]:
 
-#print("table:"+ str(omim_omop_table))
-omim_withemptyomop_store = pd.HDFStore('omim_withempty_omop_store.h5')
-omim_omop_store = pd.HDFStore('omim_omop__store.h5')
-empty_omims_store= pd.HDFStore('empty_omims_store.h5')
+        print(omim_withemptyomop_list[omid:])
+        add_omims_to_mce_matrix=[]
 
-omim_omop_store['omim_omop_store'] = omim_omop_table  # save it
-empty_omims_store['empty_omims_store'] = empty_omim_table  # save it
-omim_withemptyomop_store['omim_omop_store'] = omim_withemptyomop_table  # save it
+    return add_omims_to_mce_matrix 
 
-omim_omop_table.to_csv("omim_omop_table.csv")
-empty_omim_table.to_csv("empty_omim_table.csv")
-omim_withemptyomop_table.to_csv("omim_withemptyomop.csv")
+def get_omimids_to_concept2id(omim_withemptyomop_list,mce_concept2id):
+    for omid,in omim_withemptyomop_list["OMIMID"] :
+        print(omim_withemptyomop_list["omid"])
+        omim_concept_embid = omim_withemptyomop_list["omid":]
+    return omim_concept_embid 
+
+def  __main__():
+    mce_matrix, mce_concept2id = load_mce("./data/glove_e30_5year_128.npy", "glove",
+                                     concept2id_path="./data/concept2id_condition_5yrs.pkl")
+    omim_withemptyomop_table=pd.read_csv("./data/omim_withemptyomop.csv")
+    print("All data loaded...")
+    #omim_with_omopconceptids = add_omims_to_mce_matrix(omim_withemptyomop_table,mce_matrix,mce_concept2id)
+    get_omimids_to_concept2id(omim_withemptyomop_table,mce_concept2id)
+# find concepts from
 
 
+__main__()
