@@ -83,21 +83,106 @@ def add_omims_to_mce_matrix(omim_withemptyomop_list, mce_matrix, mce_concept2id)
         add_omims_to_mce_matrix=[]
 
     return add_omims_to_mce_matrix 
+### get omoplist and average for each omim
+def get_omimids_to_concept2id(oolist,mce_concept2id):
+    omimembeddinglist_avereaged=[]
+    for i in range(len(oolist)) :
+        try:
 
-def get_omimids_to_concept2id(omim_withemptyomop_list,mce_concept2id):
-    for omid,in omim_withemptyomop_list["OMIMID"] :
-        print(omim_withemptyomop_list["omid"])
-        omim_concept_embid = omim_withemptyomop_list["omid":]
-    return omim_concept_embid 
+            omid=oolist.loc[i,"OMIMID"]
+            omopid=oolist.loc[i,"OMOPID"]
+            embid=mce_concept2id[str(omopid)]
+            #print("omopid,embeid:" + str(embid))
+            
+        except Exception as exc:
 
-def  __main__():
+            pass    
+
+    return [] 
+
+
+def get_omop_embedding(oolist,mce_concept2id):
+    omimembeddinglist=[]
+    for i in range(len(oolist)) :
+        try:
+            omid=oolist.loc[i,"OMIMID"]
+            omopid=oolist.loc[i,"OMOPID"]
+            embid=mce_concept2id[str(omopid)]
+            #print("omopid,embeid:" + str(embid))          
+        except Exception as exc:
+            pass    
+
+    return [] 
+def getEmbeddingIDfromOMOP(mce_concept2id,oid):
+        return mce_concept2id[str(oid)]
+
+    
+
+def makeEmbeddingforOMOP(mce_matrix,omopid,mce_concept2id,embsize=128):
+    EMBED_SIZE=embsize
+   
+    embed= np.zeros(EMBED_SIZE)
+    try:
+        eid=getEmbeddingIDfromOMOP(mce_concept2id,omopid)
+        embed=mce_matrix[eid]    
+    
+    except Exception as idx:
+        return -1
+    return embed
+def getOMOPListforOMIM(ol,omid):
+    f=ol[ol["OMIMID"]==omid]
+    omoplist=np.unique(f["OMOPID"])
+    return omoplist
+
+def calcAverageEmbedding(embeddingList):
+    embaverage=embeddingList.average(axis=0)
+    pass
+    
+def getAverageEmbeddingForOmimID(mce_matrix,mce_concept2id,omim_withemptyomop_df,omid):
+    omoplist=getOMOPListforOMIM(omim_withemptyomop_df,omid)
+    emblist=[]
+    for oid in omoplist: 
+        emb=makeEmbeddingforOMOP(mce_matrix,oid,mce_concept2id)
+        if np.size(emb) > 1:
+            emblist.append(emb)
+    
+    if np.size(emblist)!=0:
+        embMean=np.mean(emblist,axis=0) 
+    else:
+        embMean=np.zeros(128) ## if no embedding avaiable , return zero embedding     
+    return embMean
+
+
+def getEmbeddingsforOmimSet(mce_matrix,mce_concept2id,omim_with_omopconceptids):
+    uniqueOmims= np.unique(omim_with_omopconceptids["OMIMID"])
+    omimEmbeddings=[]
+    for omid in uniqueOmims:
+        embMean=getAverageEmbeddingForOmimID(mce_matrix,mce_concept2id,omim_with_omopconceptids,omid)
+        print("omid,embeddings:"+str(omid)+str(embMean))
+    omimEmbeddings.append([omid,embMean])
+    return omimEmbeddings
+
+###
+# Get embeddings for TOP omim ids,
+# if embedding does not exist it is filled with zeros
+# mce_matrix contains glove embeddings for all concepts with ids.
+# mce_concept2id converts conceptid(OMOP id) to embedding id
+# omim_with_emptyomop_table: onetomany OMIM->OMOP mappings. Some OMIMs are not found in OMOP. They are also kept in the table for reverse conversion,    
+###
+def __main__():
     mce_matrix, mce_concept2id = load_mce("./data/glove_e30_5year_128.npy", "glove",
                                      concept2id_path="./data/concept2id_condition_5yrs.pkl")
-    omim_withemptyomop_table=pd.read_csv("./data/omim_withemptyomop.csv")
+    omim_withemptyomop_df=pd.read_csv("./data/omim_withemptyomop.csv")
     print("All data loaded...")
     #omim_with_omopconceptids = add_omims_to_mce_matrix(omim_withemptyomop_table,mce_matrix,mce_concept2id)
-    get_omimids_to_concept2id(omim_withemptyomop_table,mce_concept2id)
-# find concepts from
+    # give coceptid get embedding
+    
+    omid=600263
+    omimEmbed=getAverageEmbeddingForOmimID(mce_matrix,mce_concept2id,omim_withemptyomop_df,omid)
+
+    omimEmbeddings=getEmbeddingsforOmimSet(mce_matrix,mce_concept2id,omim_withemptyomop_df)
+    print(str(np.size(omimEmbeddings)))   
+ 
 
 
 __main__()
