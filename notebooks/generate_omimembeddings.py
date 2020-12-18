@@ -153,14 +153,35 @@ def getAverageEmbeddingForOmimID(mce_matrix,mce_concept2id,omim_withemptyomop_df
     return embMean
 
 
-def getEmbeddingsforOmimSet(mce_matrix,mce_concept2id,omim_with_omopconceptids):
+def getEmbeddingsDFforOmimSet(mce_matrix,mce_concept2id,omim_with_omopconceptids):
+    entityURI="http:\/\/purl.bioontology.org\/ontology\/OMIM\/MTHU"
     uniqueOmims= np.unique(omim_with_omopconceptids["OMIMID"])
     omimEmbeddings=[]
     for omid in uniqueOmims:
         embMean=getAverageEmbeddingForOmimID(mce_matrix,mce_concept2id,omim_with_omopconceptids,omid)
-        print("omid,embeddings:"+str(omid)+str(embMean))
-    omimEmbeddings.append([omid,embMean])
-    return omimEmbeddings
+        print("omim-id:embeddings:"+str(omid)+":"+str(embMean))
+        omimEmbeddings.append([entityURI+str(omid),embMean])
+    #convert to data frame
+    omimEmbeddingsDF=pd.DataFrame(omimEmbeddings,columns=['entity','embedding'])
+    return omimEmbeddingsDF
+
+
+###generate glove embeddings in json format
+# get omim glove embeddings in data frame format
+# convert to Translator OpenPredict JSON Format
+# write to json file
+###
+def saveEmbeddings_to_JSON(mce_matrix,mce_concept2id,omim_with_omopconceptids, jsonfilenamepath):
+    response=0
+    try:
+        omimEmbeddingsDF= getEmbeddingsDFforOmimSet(mce_matrix,mce_concept2id,omim_with_omopconceptids)
+        omimEmbeddingsDF.to_json(jsonfilenamepath,orient='records')   
+        response=1
+    except Exception as identifier:
+        response=0
+   
+    return response
+
 
 ###
 # Get embeddings for TOP omim ids,
@@ -169,6 +190,8 @@ def getEmbeddingsforOmimSet(mce_matrix,mce_concept2id,omim_with_omopconceptids):
 # mce_concept2id converts conceptid(OMOP id) to embedding id
 # omim_with_emptyomop_table: onetomany OMIM->OMOP mappings. Some OMIMs are not found in OMOP. They are also kept in the table for reverse conversion,    
 ###
+
+
 def __main__():
     mce_matrix, mce_concept2id = load_mce("./data/glove_e30_5year_128.npy", "glove",
                                      concept2id_path="./data/concept2id_condition_5yrs.pkl")
@@ -179,10 +202,14 @@ def __main__():
     
     omid=600263
     omimEmbed=getAverageEmbeddingForOmimID(mce_matrix,mce_concept2id,omim_withemptyomop_df,omid)
+    jsonfilenamepath="./omim_gloveembeddings.json"
+    #omimEmbeddings=getEmbeddingsDFforOmimSet(mce_matrix,mce_concept2id,omim_withemptyomop_df)
 
-    omimEmbeddings=getEmbeddingsforOmimSet(mce_matrix,mce_concept2id,omim_withemptyomop_df)
-    print(str(np.size(omimEmbeddings)))   
+    saveResult=saveEmbeddings_to_JSON(mce_matrix,mce_concept2id,omim_withemptyomop_df, jsonfilenamepath)
+    print("Embedding File generated?:"+str(saveResult))   
  
+
+
 
 
 __main__()
